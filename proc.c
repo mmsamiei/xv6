@@ -20,6 +20,55 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+// proc queue
+#define MAX 5
+struct proc* queue[MAX];
+int front = 0;
+int rear = -1;
+int itemCount = 0;
+
+struct proc* peek() {
+return queue[front];
+}
+
+int isEmpty() {
+return itemCount == 0;
+}
+
+int isFull() {
+return itemCount == MAX;
+}
+
+int size() {
+return itemCount;
+}
+
+void insert(struct proc* data) {
+
+if(!isFull()) {
+
+if(rear == MAX-1) {
+rear = -1;
+}
+
+queue[++rear] = data;
+itemCount++;
+}
+}
+
+struct proc* removeData() {
+struct proc* data = queue[front++];
+
+if(front == MAX) {
+front = 0;
+}
+
+itemCount--;
+return data;
+}
+
+// end of proc queue
+
 void
 pinit(void)
 {
@@ -110,6 +159,7 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  insert(p);
 
   release(&ptable.lock);
 }
@@ -174,6 +224,7 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+  insert(np);
 
   release(&ptable.lock);
 
@@ -345,12 +396,19 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
+
+
+      if(!isEmpty() && p!= peek()){
+        continue;
+      }
+
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      removeData();
       swtch(&cpu->scheduler, p->context);
       switchkvm();
 
@@ -394,6 +452,7 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
+  insert(proc);
   sched();
   release(&ptable.lock);
 }
@@ -467,6 +526,7 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
+      insert(p);
 }
 
 // Wake up all processes sleeping on chan.
@@ -491,8 +551,10 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
+      if(p->state == SLEEPING){
         p->state = RUNNABLE;
+        insert(p);
+      }
       release(&ptable.lock);
       return 0;
     }
