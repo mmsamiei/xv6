@@ -15,8 +15,6 @@ struct spinlock tickslock;
 uint ticks;
 uint counter;
 
-
-
 void
 tvinit(void)
 {
