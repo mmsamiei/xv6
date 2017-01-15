@@ -6,7 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-int policy = 3;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -20,51 +20,77 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+// Defined in proc.h
+struct proc* queue[];
 // proc queue
-#define MAX 5
-struct proc* queue[MAX];
 int front = 0;
 int rear = -1;
-int itemCount = 0;
+int item_count = 0;
 
-struct proc* peek() {
-return queue[front];
+struct proc*
+peek() {
+  return queue[front];
 }
 
-int isEmpty() {
-return itemCount == 0;
+int
+isempty() {
+  return item_count == 0;
 }
 
-int isFull() {
-return itemCount == MAX;
+int
+isfull() {
+  return item_count == MAX;
 }
 
-int size() {
-return itemCount;
+int
+size() {
+  return item_count;
 }
 
-void insert(struct proc* data) {
+void
+insert(struct proc* data) {
 
-if(!isFull()) {
+  if(!isfull()){
 
-if(rear == MAX-1) {
-rear = -1;
+    if(rear == MAX - 1){
+      rear = -1;
+    }
+
+    queue[++rear] = data;
+    item_count++;
+
+  }
 }
 
-queue[++rear] = data;
-itemCount++;
-}
+struct proc*
+removeData(){
+  struct proc* data = queue[front++];
+  if(front == MAX){
+      front = 0;
+  }
+
+  item_count--;
+  return data;
 }
 
-struct proc* removeData() {
-struct proc* data = queue[front++];
+int
+getbestproc(void){
+  struct proc *p;
+  double best = 99999999;
+  int temp_pid = 0 ;
 
-if(front == MAX) {
-front = 0;
-}
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if (p->state != RUNNABLE)
+        continue;
 
-itemCount--;
-return data;
+      double weigth = (double) (p->rtime) / (double) (ticks - p->ctime);
+      if(weigth < best){
+        best = weigth;
+        temp_pid = p->pid;
+      }
+  }
+
+  return temp_pid;
 }
 
 // end of proc queue
@@ -75,23 +101,6 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
-int getBestProc(void){
-	struct proc *p;
-	double best = 99999999;
-	int temp_pid = 0 ;
-	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        	if (p->state != RUNNABLE)
-            	continue;
-        	double weigth=(double)(p->rtime)/(double)(ticks-p->ctime);
-        	if(weigth<best){
-            	best=weigth;
-            	temp_pid=p->pid;
-        	}
-        }
-
-    return temp_pid;
-
-}
 
 
 //PAGEBREAK: 32
@@ -140,7 +149,9 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
   p->ctime = ticks;
+
   return p;
 }
 
@@ -410,27 +421,26 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    int best_pid = getBestProc();
+
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+
+#ifdef RR
       if(p->state != RUNNABLE)
         continue;
 
-
-
-      if(policy == 2){
-      	if(!isEmpty() && p!= peek()){
+      if(!isempty() && p!= peek()){
         	continue;
-      	}
       }
+#endif
 
-      if( policy == 3){
-
-	if(p->pid!=best_pid)
-                  continue;
-
-	}
+#ifdef FRR
+        int bestpid = getbestproc();
+	    if(p->pid != bestpid)
+          continue;
+#endif
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -447,6 +457,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
+
     release(&ptable.lock);
 
   }

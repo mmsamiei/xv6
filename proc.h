@@ -73,3 +73,7 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+//
+
+#define MAX 5
+extern struct proc* queue[MAX];
