@@ -20,6 +20,8 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+// Defined in proc.h
+struct proc* queue[];
 // proc queue
 int front = 0;
 int rear = -1;
@@ -48,7 +50,7 @@ size() {
 void
 insert(struct proc* data) {
 
-  if(!is_full()){
+  if(!isfull()){
 
     if(rear == MAX - 1){
       rear = -1;
@@ -417,26 +419,25 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-    int bestpid = getbestproc();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-#ifdef RR
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+
+#ifdef RR
       if(p->state != RUNNABLE)
         continue;
-      	if(!isempty() && p!= peek()){
+
+      if(!isempty() && p!= peek()){
         	continue;
-      	}
       }
 #endif
 
-#ifdef STH
-      if(policy == 3){
-	    if(p->pid!=bestpid)
+#ifdef FRR
+        int bestpid = getbestproc();
+	    if(p->pid != bestpid)
           continue;
-	  }
 #endif
 
       // Switch to chosen process.  It is the process's job
@@ -453,6 +454,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
+
     release(&ptable.lock);
 
   }
