@@ -421,23 +421,23 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 
+#ifdef RR
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-
-
-
-      if(policy == 2){
       	if(!isempty() && p!= peek()){
         	continue;
       	}
       }
+#endif
 
+#ifdef STH
       if(policy == 3){
 	    if(p->pid!=bestpid)
           continue;
 	  }
+#endif
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
