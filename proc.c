@@ -178,7 +178,8 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
-  insert(p);
+  if(policy==2)
+  	insert(p);
 
   release(&ptable.lock);
 }
@@ -243,7 +244,8 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  insert(np);
+  if(policy==2)
+  	insert(np);
 
   release(&ptable.lock);
 
@@ -436,7 +438,8 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
-      removeData();
+      if(policy==2)
+      	removeData();
       swtch(&cpu->scheduler, p->context);
       switchkvm();
 
@@ -480,7 +483,8 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
-  insert(proc);
+  if(policy == 2)
+  	insert(proc);
   sched();
   release(&ptable.lock);
 }
@@ -554,7 +558,8 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-        insert(p);
+	if(policy == 2)
+        	insert(p);
     }
 }
 
@@ -582,7 +587,8 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING){
         p->state = RUNNABLE;
-        insert(p);
+	if(policy == 2)
+        	insert(p);
       }
       release(&ptable.lock);
       return 0;
