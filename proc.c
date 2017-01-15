@@ -429,16 +429,17 @@ scheduler(void)
 
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 
-#ifdef RR
       if(p->state != RUNNABLE)
         continue;
 
+
+#ifdef FRR
       if(!isempty() && p!= peek()){
         	continue;
       }
 #endif
 
-#ifdef FRR
+#ifdef GRT
         int bestpid = getbestproc();
 	    if(p->pid != bestpid)
           continue;
