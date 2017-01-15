@@ -21,55 +21,57 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 // Defined in proc.h
-struct proc* queue[];
-// proc queue
-int front = 0;
-int rear = -1;
-int item_count = 0;
+struct proc* queue_rr[MAX];
+struct proc* queue_frr[MAX];
+struct proc* queue_grt[MAX];
+struct queuedata queuedata_rr;
+struct queuedata queuedata_frr;
+struct queuedata queuedata_grt;
+
 
 struct proc*
-peek() {
-  return queue[front];
+peek(struct proc *queue[], struct queuedata queuedata) {
+  return queue[queuedata.front];
 }
 
 int
-isempty() {
-  return item_count == 0;
+isempty(struct queuedata queuedata) {
+  return queuedata.itemcount == 0;
 }
 
 int
-isfull() {
-  return item_count == MAX;
+isfull(struct queuedata queuedata) {
+  return queuedata.itemcount == MAX;
 }
 
 int
-size() {
-  return item_count;
+size(struct queuedata queuedata) {
+  return queuedata.itemcount;
 }
 
 void
-insert(struct proc* data) {
+insert(struct proc *queue[], struct proc *data, struct queuedata queuedata) {
 
-  if(!isfull()){
+  if(!isfull(queuedata)){
 
-    if(rear == MAX - 1){
-      rear = -1;
+    if(queuedata.rear == MAX - 1){
+      queuedata.rear = -1;
     }
 
-    queue[++rear] = data;
-    item_count++;
+    queue[++queuedata.rear] = data;
+    queuedata.itemcount++;
 
   }
 }
 
 struct proc*
-removeData(){
-  struct proc* data = queue[front++];
-  if(front == MAX){
-      front = 0;
+removedata(struct proc *queue[], struct queuedata queuedata){
+  struct proc* data = queue[queuedata.front++];
+  if(queuedata.front == MAX){
+      queuedata.front = 0;
   }
 
-  item_count--;
+  queuedata.itemcount--;
   return data;
 }
 
@@ -77,7 +79,7 @@ int
 getbestproc(void){
   struct proc *p;
   double best = 99999999;
-  int temp_pid = 0 ;
+  int temppid = 0 ;
 
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if (p->state != RUNNABLE)
@@ -86,11 +88,11 @@ getbestproc(void){
       double weigth = (double) (p->rtime) / (double) (ticks - p->ctime);
       if(weigth < best){
         best = weigth;
-        temp_pid = p->pid;
+        temppid = p->pid;
       }
   }
 
-  return temp_pid;
+  return temppid;
 }
 
 // end of proc queue
@@ -257,7 +259,7 @@ fork(void)
 
   np->state = RUNNABLE;
 #ifdef FRR
-  insert(np);
+  insert(queue_frr, np);
 #endif
 
   release(&ptable.lock);
@@ -434,7 +436,7 @@ scheduler(void)
 
 
 #ifdef FRR
-      if(!isempty() && p!= peek()){
+      if(!isempty(queuedata_frr) && p != peek(queuedata_frr)){
         	continue;
       }
 #endif
@@ -452,7 +454,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 #ifdef FRR
-      removeData();
+      removedata(queue_frr, queuedata_frr);
 #endif
       swtch(&cpu->scheduler, p->context);
       switchkvm();
@@ -499,7 +501,7 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
 #ifdef FRR
-  insert(proc);
+  insert(queue_frr, proc);
 #endif
   sched();
   release(&ptable.lock);
@@ -575,7 +577,7 @@ wakeup1(void *chan)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
 #ifdef FRR
-        insert(p);
+        insert(queue_frr, p);
 #endif
     }
 }
@@ -605,7 +607,7 @@ kill(int pid)
       if(p->state == SLEEPING){
         p->state = RUNNABLE;
 #ifdef FRR
-        insert(p);
+        insert(queue_frr, p);
 #endif
       }
       release(&ptable.lock);

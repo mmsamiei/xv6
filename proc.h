@@ -77,4 +77,16 @@ struct proc {
 //
 
 #define MAX 5
-extern struct proc* queue[MAX];
+extern struct proc* queue_rr[MAX];
+extern struct proc* queue_frr[MAX];
+extern struct proc* queue_grt[MAX];
+
+struct queuedata {
+    int front;
+    int rear;
+    int itemcount;
+};
+
+extern struct queuedata queuedata_rr;
+extern struct queuedata queuedata_frr;
+extern struct queuedata queuedata_grt;
