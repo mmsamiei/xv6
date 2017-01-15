@@ -6,7 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-
+int policy = 3;
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -74,6 +74,25 @@ pinit(void)
 {
   initlock(&ptable.lock, "ptable");
 }
+
+int getBestProc(void){
+	struct proc *p;
+	double best = 99999999;
+	int temp_pid = 0 ;
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        	if (p->state != RUNNABLE)
+            	continue;
+        	double weigth=(double)(p->rtime)/(double)(ticks-p->ctime);
+        	if(weigth<best){
+            	best=weigth;
+            	temp_pid=p->pid;
+        	}
+        }
+
+    return temp_pid;
+
+}
+
 
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
@@ -389,7 +408,7 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
+    int best_pid = getBestProc();
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -398,9 +417,18 @@ scheduler(void)
 
 
 
-      if(!isEmpty() && p!= peek()){
-        continue;
+      if(policy == 2){
+      	if(!isEmpty() && p!= peek()){
+        	continue;
+      	}
       }
+
+      if( policy == 3){
+
+	if(p->pid!=best_pid)
+                  continue;
+
+	}
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
