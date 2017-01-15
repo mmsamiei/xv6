@@ -192,7 +192,7 @@ userinit(void)
 
   p->state = RUNNABLE;
 #ifdef FRR
-  insert(p);
+  insert(queue_frr, p, queuedata_frr);
 #endif
 
   release(&ptable.lock);
@@ -259,7 +259,7 @@ fork(void)
 
   np->state = RUNNABLE;
 #ifdef FRR
-  insert(queue_frr, np);
+  insert(queue_frr, np, queuedata_frr);
 #endif
 
   release(&ptable.lock);
@@ -436,7 +436,7 @@ scheduler(void)
 
 
 #ifdef FRR
-      if(!isempty(queuedata_frr) && p != peek(queuedata_frr)){
+      if(!isempty(queuedata_frr) && p != peek(queue_frr, queuedata_frr)){
         	continue;
       }
 #endif
@@ -501,7 +501,7 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
 #ifdef FRR
-  insert(queue_frr, proc);
+  insert(queue_frr, proc, queuedata_frr);
 #endif
   sched();
   release(&ptable.lock);
@@ -577,7 +577,7 @@ wakeup1(void *chan)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
 #ifdef FRR
-        insert(queue_frr, p);
+        insert(queue_frr, p, queuedata_frr);
 #endif
     }
 }
@@ -607,7 +607,7 @@ kill(int pid)
       if(p->state == SLEEPING){
         p->state = RUNNABLE;
 #ifdef FRR
-        insert(queue_frr, p);
+        insert(queue_frr, p, queuedata_frr);
 #endif
       }
       release(&ptable.lock);
