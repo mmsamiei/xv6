@@ -24,10 +24,9 @@ static void wakeup1(void *chan);
 struct proc* queue_rr[MAX];
 struct proc* queue_frr[MAX];
 struct proc* queue_grt[MAX];
-struct queuedata queuedata_rr;
-struct queuedata queuedata_frr;
-struct queuedata queuedata_grt;
-
+struct queuedata queuedata_rr = {0, -1, 0};
+struct queuedata queuedata_frr = {0, -1, 0};
+struct queuedata queuedata_grt = {0, -1, 0};
 
 struct proc*
 peek(struct proc *queue[], struct queuedata queuedata) {
@@ -476,6 +475,7 @@ scheduler(void)
           if(!isempty(queuedata_frr) && p != peek(queue_frr, queuedata_frr))
               continue;
       } else {
+          // Samiei should complete it for RR
       }
 #endif
       // Switch to chosen process.  It is the process's job

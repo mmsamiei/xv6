@@ -87,6 +87,6 @@ struct queuedata {
     int itemcount;
 };
 
-extern struct queuedata queuedata_rr = {0, -1, 0};
-extern struct queuedata queuedata_frr = {0, -1, 0};
-extern struct queuedata queuedata_grt = {0, -1, 0};
+extern struct queuedata queuedata_rr;
+extern struct queuedata queuedata_frr;
+extern struct queuedata queuedata_grt;
