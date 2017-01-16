@@ -128,6 +128,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = 2;
 
   release(&ptable.lock);
 
@@ -193,6 +194,16 @@ userinit(void)
   p->state = RUNNABLE;
 #ifdef FRR
   insert(queue_frr, p, queuedata_frr);
+#endif
+
+#ifdef Q3
+  if(proc->priority == 0) {
+    insert(queue_rr, proc, queuedata_rr);
+  } else if (proc->priority == 1) {
+    insert(queue_frr, proc, queuedata_frr);
+  } else if (proc->priority == 2) {
+    insert(queue_grt, proc, queuedata_grt);
+  }
 #endif
 
   release(&ptable.lock);
@@ -262,8 +273,17 @@ fork(void)
   insert(queue_frr, np, queuedata_frr);
 #endif
 
-  release(&ptable.lock);
+#ifdef Q3
+  if(proc->priority == 0) {
+    insert(queue_rr, proc, queuedata_rr);
+  } else if (proc->priority == 1) {
+    insert(queue_frr, proc, queuedata_frr);
+  } else if (proc->priority == 2) {
+    insert(queue_grt, proc, queuedata_grt);
+  }
+#endif
 
+  release(&ptable.lock);
   return pid;
 }
 
@@ -390,13 +410,12 @@ wait2()
         argptr(1,&rtime,sizeof(int));
 
         *rtime = p->rtime;
-        *wtime = (p->etime - p->ctime)-(p->rtime);
+        *wtime = (p->etime - p->ctime) - (p->rtime);
 
         release(&ptable.lock);
         return pid;
       }
     }
-
 
     if(!havekids || proc->killed){
       release(&ptable.lock);
@@ -441,20 +460,43 @@ scheduler(void)
       }
 #endif
 
+
 #ifdef GRT
         int bestpid = getbestproc();
 	    if(p->pid != bestpid)
           continue;
 #endif
 
+#ifdef Q3
+      if(!isempty(queuedata_grt)){
+        int bestpid = getbestproc();
+	    if(p->pid != bestpid)
+        	continue;
+      } else if (!isempty(queuedata_frr)) {
+          if(!isempty(queuedata_frr) && p != peek(queue_frr, queuedata_frr))
+              continue;
+      } else {
+      }
+#endif
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+
 #ifdef FRR
       removedata(queue_frr, queuedata_frr);
+#endif
+
+#ifdef Q3
+      if(!isempty(queuedata_grt)) {
+        removedata(queue_grt, queuedata_grt);
+      } else if (!isempty(queuedata_frr)) {
+        removedata(queue_frr, queuedata_frr);
+      } else if (!isempty(queuedata_rr)) {
+        removedata(queue_rr, queuedata_rr);
+      }
 #endif
       swtch(&cpu->scheduler, p->context);
       switchkvm();
@@ -503,6 +545,17 @@ yield(void)
 #ifdef FRR
   insert(queue_frr, proc, queuedata_frr);
 #endif
+
+#ifdef Q3
+  if(proc->priority == 0) {
+    insert(queue_rr, proc, queuedata_rr);
+  } else if (proc->priority == 1) {
+    insert(queue_frr, proc, queuedata_frr);
+  } else if (proc->priority == 2) {
+    insert(queue_grt, proc, queuedata_grt);
+  }
+#endif
+
   sched();
   release(&ptable.lock);
 }
@@ -579,6 +632,16 @@ wakeup1(void *chan)
 #ifdef FRR
         insert(queue_frr, p, queuedata_frr);
 #endif
+
+#ifdef Q3
+  if(proc->priority == 0) {
+    insert(queue_rr, proc, queuedata_rr);
+  } else if (proc->priority == 1) {
+    insert(queue_frr, proc, queuedata_frr);
+  } else if (proc->priority == 2) {
+    insert(queue_grt, proc, queuedata_grt);
+  }
+#endif
     }
 }
 
@@ -609,6 +672,17 @@ kill(int pid)
 #ifdef FRR
         insert(queue_frr, p, queuedata_frr);
 #endif
+
+#ifdef Q3
+  if(proc->priority == 0) {
+    insert(queue_rr, proc, queuedata_rr);
+  } else if (proc->priority == 1) {
+    insert(queue_frr, proc, queuedata_frr);
+  } else if (proc->priority == 2) {
+    insert(queue_grt, proc, queuedata_grt);
+  }
+#endif
+
       }
       release(&ptable.lock);
       return 0;
