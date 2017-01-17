@@ -4,7 +4,7 @@
 
 void run(int cid){
     for(int i = 1 ; i <= 500; i++ ){
-        printf(1, "Child %d prints for the  %d time.\n", getpid(), cid);
+        printf(1, "Child %d prints for the  %d time.\n", cid, i);
     }
 
 }
@@ -35,20 +35,18 @@ int main(){
     }
 
     int child_output[30][3];
-    for(int i=0;i<30;i++){
+    for(int i = 0; i < 30; i++){
         int child_pid;
-        int wtime,rtime;
-        child_pid = wait2(&wtime,&rtime);
+        int wtime, rtime;
+        child_pid = wait2(&wtime, &rtime);
         child_output[i][0]=child_pid;
         child_output[i][1]=wtime;
         child_output[i][2]=rtime;
     }
 
-    for(int i=0;i<10;i++){
-        printf(1,"child pid: %d         wait time: %d        running time : %d \n",child_output[i][0],child_output[i][1],child_output[i][2]);
-
+    for(int i = 0; i < 30; i++){
+        printf(1, "Child pid: %d         wait time: %d        running time : %d \n", child_output[i][0], child_output[i][1], child_output[i][2]);
     }
-
 
     exit();
 }
