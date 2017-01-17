@@ -19,6 +19,7 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+int sth;
 
 // Defined in proc.h
 struct proc* queue_rr[MAX];
