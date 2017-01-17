@@ -53,12 +53,12 @@ trap(struct trapframe *tf)
       acquire(&tickslock);
       ticks++;
       counter++;
-      if(proc && proc->state==RUNNING){
-           proc->rtime++;
-      }
       wakeup(&ticks);
       release(&tickslock);
     }
+    if(proc && proc->state==RUNNING){
+           proc->rtime++;
+      }
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
