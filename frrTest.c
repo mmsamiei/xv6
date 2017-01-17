@@ -2,8 +2,11 @@
 #include "stat.h"
 #include "user.h"
 
+
+
 int main(){
 
+    sth
     for(int i = 0 ; i<10 ; i++){
         int fork_val = fork();
         if(fork_val == -1){
