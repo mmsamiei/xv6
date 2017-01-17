@@ -36,7 +36,7 @@ OBJS = \
 #TOOLPREFIX =
 
 # Schedule policy
-SCHEDFLAG=RR
+SCHEDFLAG=GRT
 
 # Try to infer the correct TOOLPREFIX if not set
 ifndef TOOLPREFIX
@@ -179,6 +179,7 @@ UPROGS=\
 	_parent\
 	_waittest\
 	_RRsanity\
+	_Gsanity\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -251,6 +252,7 @@ EXTRA=\
 	waittest.c\
 	rr_sanity.c\
 	RRsanity.c\
+	Gsanity.c\
 	printf.c umalloc.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
