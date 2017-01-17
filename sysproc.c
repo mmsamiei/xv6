@@ -111,3 +111,9 @@ sys_sth(void)
 {
   return sth();
 }
+
+int
+sys_nice(void)
+{
+  return nice();
+}

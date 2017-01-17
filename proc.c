@@ -438,6 +438,23 @@ sth(void)
   return test3flag;
 }
 
+int
+nice(void)
+{
+  if(proc->priority == 2){
+    proc->priority--;
+    removedata(queue_grt, queuedata_grt);
+    insert(queue_frr, proc, queuedata_frr);
+    return 2;
+  } else if(proc->priority == 1){
+    proc->priority--;
+    removedata(queue_frr, queuedata_frr);
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.

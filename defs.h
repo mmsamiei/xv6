@@ -116,6 +116,7 @@ void            userinit(void);
 int             wait(void);
 int             wait2(void);
 int             sth(void);
+int             nice(void);
 void            wakeup(void*);
 void            yield(void);
 
