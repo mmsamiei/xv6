@@ -500,7 +500,7 @@ scheduler(void)
 #ifdef FRR
       removedata(queue_frr, queuedata_frr);
       if(test3flag == 1){
-        cprintf("Process %d switched.\n", proc->);
+        cprintf("Process %d switched.\n", proc->pid);
       }
 #endif
 
