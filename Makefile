@@ -178,7 +178,6 @@ UPROGS=\
 	_zombie\
 	_parent\
 	_waittest\
-	_rr_sanity\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
