@@ -25,10 +25,7 @@ int sleep(int);
 int uptime(void);
 int wait2(int*, int*);
 int getyear(void);
-int sem_init(int, int);
-int sem_destroy(int);
-int sem_wait(int, int);
-int sem_signal(int, int);
+int sth(void);
 int RRsanity(void);
 int Gsanity(void);
 // ulib.c

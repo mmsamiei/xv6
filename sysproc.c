@@ -99,8 +99,15 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
 int
 sys_wait2(void)
 {
-    return wait2();
+  return wait2();
+}
+
+int
+sys_sth(void)
+{
+  return sth();
 }

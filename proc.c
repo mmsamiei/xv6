@@ -15,6 +15,7 @@ struct {
 static struct proc *initproc;
 
 int nextpid = 1;
+int test3flag = 0;
 extern void forkret(void);
 extern void trapret(void);
 
@@ -426,6 +427,17 @@ wait2()
   }
 }
 
+int
+sth(void)
+{
+  if(test3flag == 0){
+    test3flag = 1;
+  } else {
+    test3flag = 0;
+  }
+  return test3flag;
+}
+
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
@@ -487,6 +499,9 @@ scheduler(void)
 
 #ifdef FRR
       removedata(queue_frr, queuedata_frr);
+      if(test3flag == 1){
+        cprintf("Process %d switched.\n", proc->);
+      }
 #endif
 
 #ifdef Q3
