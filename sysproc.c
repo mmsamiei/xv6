@@ -102,27 +102,5 @@ sys_uptime(void)
 int
 sys_wait2(void)
 {
-  return wait2();
-}
-
-void
-sys_nice(void)
-{
-  if(proc->priority == 0)
-  proc->priority--;
-}
-
-int
-sys_sth(void)
-{
-  static int sth = 0;
-  int n;
-  if(argint(0, &n) < 0)
-    return -1;
-  if(n == -1) {
-      return sth;
-  } else {
-      sth = n;
-      return sth;
-  }
+    return wait2();
 }
