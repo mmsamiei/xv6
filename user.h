@@ -29,6 +29,8 @@ int sem_init(int, int);
 int sem_destroy(int);
 int sem_wait(int, int);
 int sem_signal(int, int);
+int RRsanity(void);
+int Gsanity(void);
 // ulib.c
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);
