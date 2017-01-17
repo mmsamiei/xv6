@@ -28,6 +28,7 @@ int getyear(void);
 int sth(void);
 int RRsanity(void);
 int Gsanity(void);
+int nice(void);
 // ulib.c
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);

@@ -181,6 +181,7 @@ UPROGS=\
 	_RRsanity\
 	_Gsanity\
 	_frrTest\
+	_sanity\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -255,6 +256,7 @@ EXTRA=\
 	RRsanity.c\
 	frrTest.c\
 	Gsanity.c\
+	sanity.c\
 	printf.c umalloc.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\

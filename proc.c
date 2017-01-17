@@ -16,6 +16,23 @@ static struct proc *initproc;
 
 int nextpid = 1;
 int test3flag = 0;
+
+#ifdef RR
+int strategy = 0;
+#endif
+
+#ifdef FRR
+int strategy = 1;
+#endif
+
+#ifdef GRT
+int strategy = 2;
+#endif
+
+#ifdef Q3
+int strategy = 3;
+#endif
+
 extern void forkret(void);
 extern void trapret(void);
 
@@ -192,19 +209,10 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
-#ifdef FRR
-  insert(queue_frr, p, queuedata_frr);
-#endif
-
-#ifdef Q3
-  if(proc->priority == 0) {
-    insert(queue_rr, proc, queuedata_rr);
-  } else if (proc->priority == 1) {
-    insert(queue_frr, proc, queuedata_frr);
-  } else if (proc->priority == 2) {
-    insert(queue_grt, proc, queuedata_grt);
+  if(strategy == 1){
+    insert(queue_frr, p, queuedata_frr);
   }
-#endif
+
 
   release(&ptable.lock);
 }
@@ -269,19 +277,8 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-#ifdef FRR
-  insert(queue_frr, np, queuedata_frr);
-#endif
-
-#ifdef Q3
-  if(proc->priority == 0) {
-    insert(queue_rr, proc, queuedata_rr);
-  } else if (proc->priority == 1) {
-    insert(queue_frr, proc, queuedata_frr);
-  } else if (proc->priority == 2) {
-    insert(queue_grt, proc, queuedata_grt);
-  }
-#endif
+  if(strategy == 1)
+    insert(queue_frr, np, queuedata_frr);
 
   release(&ptable.lock);
   return pid;
@@ -455,6 +452,31 @@ nice(void)
   }
 }
 
+int frrexists(){
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+    if(p->priority == 1){
+      return 1;
+    }
+
+  }
+  return 0;
+}
+
+int grtexists(){
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+    if(p->priority == 2){
+      return 1;
+    }
+
+  }
+  return 0;
+}
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
@@ -481,32 +503,19 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
-
-#ifdef FRR
-      if(!isempty(queuedata_frr) && p != peek(queue_frr, queuedata_frr)){
-        	continue;
-      }
-#endif
-
-
-#ifdef GRT
+      if(strategy == 2 || (strategy == 3 && grtexists())){
         int bestpid = getbestproc();
 	    if(p->pid != bestpid)
           continue;
-#endif
-
-#ifdef Q3
-      if(!isempty(queuedata_grt)){
-        int bestpid = getbestproc();
-	    if(p->pid != bestpid)
-        	continue;
-      } else if (!isempty(queuedata_frr)) {
-          if(!isempty(queuedata_frr) && p != peek(queue_frr, queuedata_frr))
-              continue;
-      } else {
-          // Samiei should complete it for RR
       }
-#endif
+
+      if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+        if(!isempty(queuedata_frr) && p != peek(queue_frr, queuedata_frr)){
+          continue;
+        }
+      }
+
+
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
@@ -514,22 +523,13 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-#ifdef FRR
-      removedata(queue_frr, queuedata_frr);
-      if(test3flag == 1){
-        cprintf("Process %d switched.\n", proc->pid);
-      }
-#endif
-
-#ifdef Q3
-      if(!isempty(queuedata_grt)) {
-        removedata(queue_grt, queuedata_grt);
-      } else if (!isempty(queuedata_frr)) {
+      if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
         removedata(queue_frr, queuedata_frr);
-      } else if (!isempty(queuedata_rr)) {
-        removedata(queue_rr, queuedata_rr);
+        if(test3flag == 1){
+          cprintf("Process %d switched.\n", proc->pid);
+        }
       }
-#endif
+
       swtch(&cpu->scheduler, p->context);
       switchkvm();
 
@@ -542,6 +542,7 @@ scheduler(void)
 
   }
 }
+
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
@@ -574,19 +575,9 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
-#ifdef FRR
-  insert(queue_frr, proc, queuedata_frr);
-#endif
 
-#ifdef Q3
-  if(proc->priority == 0) {
-    insert(queue_rr, proc, queuedata_rr);
-  } else if (proc->priority == 1) {
+  if(strategy == 1)
     insert(queue_frr, proc, queuedata_frr);
-  } else if (proc->priority == 2) {
-    insert(queue_grt, proc, queuedata_grt);
-  }
-#endif
 
   sched();
   release(&ptable.lock);
@@ -661,19 +652,10 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-#ifdef FRR
-        insert(queue_frr, p, queuedata_frr);
-#endif
 
-#ifdef Q3
-  if(proc->priority == 0) {
-    insert(queue_rr, proc, queuedata_rr);
-  } else if (proc->priority == 1) {
-    insert(queue_frr, proc, queuedata_frr);
-  } else if (proc->priority == 2) {
-    insert(queue_grt, proc, queuedata_grt);
-  }
-#endif
+      if(strategy == 1)
+        insert(queue_frr, p, queuedata_frr);
+
     }
 }
 
@@ -701,20 +683,9 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING){
         p->state = RUNNABLE;
-#ifdef FRR
-        insert(queue_frr, p, queuedata_frr);
-#endif
 
-#ifdef Q3
-  if(proc->priority == 0) {
-    insert(queue_rr, proc, queuedata_rr);
-  } else if (proc->priority == 1) {
-    insert(queue_frr, proc, queuedata_frr);
-  } else if (proc->priority == 2) {
-    insert(queue_grt, proc, queuedata_grt);
-  }
-#endif
-
+        if(strategy == 1)
+          insert(queue_frr, p, queuedata_frr);
       }
       release(&ptable.lock);
       return 0;
