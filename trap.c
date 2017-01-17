@@ -14,7 +14,6 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 uint counter;
-int sth = 0;
 
 void
 tvinit(void)
