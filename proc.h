@@ -90,4 +90,3 @@ struct queuedata {
 extern struct queuedata queuedata_rr;
 extern struct queuedata queuedata_frr;
 extern struct queuedata queuedata_grt;
-extern int sth;
