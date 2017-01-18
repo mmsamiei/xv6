@@ -77,30 +77,57 @@ isinqueue(struct proc *queue[], struct proc *data, struct queuedata queuedata) {
 }
 
 void
-insert(struct proc *queue[], struct proc *data, struct queuedata queuedata) {
+insert(struct proc *queue[], struct proc *data, struct queuedata *queuedata) {
 
-  if(!isfull(queuedata)){
+  if(!isfull(*queuedata)){
 
-    if(queuedata.rear == MAX - 1){
-      queuedata.rear = -1;
+    if(queuedata->rear == MAX - 1){
+      queuedata->rear = -1;
     }
 
-    queue[++queuedata.rear] = data;
-    queuedata.itemcount++;
+    queue[++queuedata->rear] = data;
+    queuedata->itemcount++;
 
   }
 }
 
 struct proc*
-removedata(struct proc *queue[], struct queuedata queuedata){
-  struct proc* data = queue[queuedata.front++];
-  if(queuedata.front == MAX){
-      queuedata.front = 0;
+removedata(struct proc *queue[], struct queuedata *queuedata){
+  struct proc* data = queue[queuedata->front++];
+  if(queuedata->front == MAX){
+      queuedata->front = 0;
   }
 
-  queuedata.itemcount--;
+  queuedata->itemcount--;
   return data;
 }
+
+int frrexists(){
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+    if(p->priority == 1){
+      return 1;
+    }
+
+  }
+  return 0;
+}
+
+int grtexists(){
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+    if(p->priority == 2){
+      return 1;
+    }
+
+  }
+  return 0;
+}
+
 
 int
 getbestproc(void){
@@ -218,8 +245,8 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
   p->state = RUNNABLE;
-  if(strategy == 1){
-    insert(queue_frr, p, queuedata_frr);
+  if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+    insert(queue_frr, p, &queuedata_frr);
   }
 
 
@@ -287,8 +314,8 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  if(strategy == 1){
-    insert(queue_frr, np, queuedata_frr);
+  if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+    insert(queue_frr, np, &queuedata_frr);
   }
 
   release(&ptable.lock);
@@ -451,42 +478,16 @@ nice(void)
 {
   if(proc->priority == 2){
     proc->priority--;
-    removedata(queue_grt, queuedata_grt);
-    insert(queue_frr, proc, queuedata_frr);
+    removedata(queue_grt, &queuedata_grt);
+    insert(queue_frr, proc, &queuedata_frr);
     return 2;
   } else if(proc->priority == 1){
     proc->priority--;
-    removedata(queue_frr, queuedata_frr);
+    removedata(queue_frr, &queuedata_frr);
     return 1;
   } else {
     return 0;
   }
-}
-
-int frrexists(){
-  struct proc *p;
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state != RUNNABLE)
-      continue;
-    if(p->priority == 1){
-      return 1;
-    }
-
-  }
-  return 0;
-}
-
-int grtexists(){
-  struct proc *p;
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state != RUNNABLE)
-      continue;
-    if(p->priority == 2){
-      return 1;
-    }
-
-  }
-  return 0;
 }
 
 //PAGEBREAK: 42
@@ -534,9 +535,13 @@ scheduler(void)
       p->state = RUNNING;
 
       if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
-          if(test3flag == 1)
-            cprintf("Process %d switched.\n", proc->pid);
-        removedata(queue_frr, queuedata_frr);
+          if(test3flag == 1){
+            cprintf("Printing queue...\n");
+            for(int i = queuedata_frr.rear; i < queuedata_frr.front; i++){
+                cprintf("Process %d is in queue.\n", queue_frr[i]->pid);
+            }
+          }
+          removedata(queue_frr, &queuedata_frr);
       }
       switchuvm(p);
 
@@ -586,9 +591,9 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
 
-  //if(strategy == 1){
-  //  insert(queue_frr, proc, queuedata_frr);
-  //}
+  if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+    insert(queue_frr, proc, &queuedata_frr);
+  }
 
   sched();
   release(&ptable.lock);
@@ -663,6 +668,9 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
+      if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+          insert(queue_frr, p, &queuedata_frr);
+      }
     }
 }
 
@@ -690,6 +698,9 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING){
         p->state = RUNNABLE;
+        if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+            insert(queue_frr, p, &queuedata_frr);
+        }
       }
       release(&ptable.lock);
       return 0;
