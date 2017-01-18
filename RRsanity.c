@@ -2,8 +2,6 @@
 #include "stat.h"
 #include "user.h"
 
-
-
 void run(){
     for(int i = 1 ; i <= 1000 ; i++ ){
         printf(1,"child %d prints for the  %d time.\n",getpid(),i);

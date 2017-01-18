@@ -66,6 +66,16 @@ size(struct queuedata queuedata) {
   return queuedata.itemcount;
 }
 
+int
+isinqueue(struct proc *queue[], struct proc *data, struct queuedata queuedata) {
+    for(int i = queuedata.front; i < queuedata.rear; i++){
+        if(peek(queue, queuedata)->pid == data->pid){
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void
 insert(struct proc *queue[], struct proc *data, struct queuedata queuedata) {
 
@@ -207,11 +217,11 @@ userinit(void)
   // writes to be visible, and the lock is also needed
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
-
   p->state = RUNNABLE;
   if(strategy == 1){
     insert(queue_frr, p, queuedata_frr);
   }
+
 
 
   release(&ptable.lock);
@@ -277,8 +287,9 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  if(strategy == 1)
+  if(strategy == 1){
     insert(queue_frr, np, queuedata_frr);
+  }
 
   release(&ptable.lock);
   return pid;
@@ -520,15 +531,14 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
-      switchuvm(p);
       p->state = RUNNING;
 
       if(strategy == 1 || (strategy == 3 && grtexists() == 0 && frrexists() == 1)){
+          if(test3flag == 1)
+            cprintf("Process %d switched.\n", proc->pid);
         removedata(queue_frr, queuedata_frr);
-        if(test3flag == 1){
-          cprintf("Process %d switched.\n", proc->pid);
-        }
       }
+      switchuvm(p);
 
       swtch(&cpu->scheduler, p->context);
       switchkvm();
@@ -576,8 +586,9 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
 
-  if(strategy == 1)
-    insert(queue_frr, proc, queuedata_frr);
+  //if(strategy == 1){
+  //  insert(queue_frr, proc, queuedata_frr);
+  //}
 
   sched();
   release(&ptable.lock);
@@ -652,10 +663,6 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-
-      if(strategy == 1)
-        insert(queue_frr, p, queuedata_frr);
-
     }
 }
 
@@ -683,9 +690,6 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING){
         p->state = RUNNABLE;
-
-        if(strategy == 1)
-          insert(queue_frr, p, queuedata_frr);
       }
       release(&ptable.lock);
       return 0;

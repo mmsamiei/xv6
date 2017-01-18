@@ -9,13 +9,12 @@ int main(){
     for(int i = 0 ; i<10 ; i++){
         int fork_val = fork();
         if(fork_val == -1){
-            printf(1, "faild");
+            printf(1, "failed\n");
         }
         else if(fork_val == 0){
             for(int j=0;j<1000;j++);
             exit();
-        }
-        else{
+        } else {
             //no doing
         }
     }
